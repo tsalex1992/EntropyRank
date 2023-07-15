@@ -1,0 +1,4 @@
+rake-nltk==1.0.6
+yake==0.4.8
+keybert==0.7.0
+pytextrank==3.2.4

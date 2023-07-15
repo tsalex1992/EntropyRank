@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "entropyrank"
+version = "1.0.0"
+authors = [
+  { name="Alexander Tsvetkov", email="tsalex1992@gmail.com" },
+]
+description = "Entropy Rank keyphrase extractor"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = {text = "Apache-2.0"}
+keywords = ["keyphrase extraction", "keywords extraction", "EntropyRank", "entropy"]
+dependencies = [
+  "spacy>=3.6.0",
+  "transformers==4.30.0",
+  "keyphrase-vectorizers==0.0.11",
+  "torch==2.0.1",
+  "torchaudio==2.0.2",
+  "torchvision==0.15.2",
+  "numpy>=1.24.0"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/pypa/sampleproject"
+"Bug Tracker" = "https://github.com/pypa/sampleproject/issues"
