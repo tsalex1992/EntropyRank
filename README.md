@@ -1,7 +1,16 @@
 # EntropyBasedKeyPhraseExtraction
+This is the official implementation of the EntropyRank key phrase extractor from https://openreview.net/forum?id=WCTtOfIhsJ. Please cite the paper and star this repo if you find EntropyRank useful! Thanks!
 
-This repository contains a Python package for extracting keyphrases from text using language models via entropy evaluation of phrases.
-
+```
+@inproceedings{
+tsvetkov2023entropyrank,
+title={EntropyRank: Unsupervised Keyphrase Extraction via Side-Information Optimization for Language Model-based Text Compression},
+author={Alexander Tsvetkov and Alon Kipnis},
+booktitle={ICML 2023 Workshop Neural Compression: From Information Theory to Applications},
+year={2023},
+url={https://openreview.net/forum?id=WCTtOfIhsJ}
+}
+```
 ## Installation
 
 To install directly:
@@ -53,5 +62,5 @@ The parameters of the `extract_key_phrases` method are:
 
 ## Evaluation Demo
 
-You can run the evaluation_demo notebook included in this repository to get the benchmark results on common key phrase extraction tasks reported in the paper.
+You can run the evaluation_demo notebook included in this repository under src/eval to get the benchmark results on common key phrase extraction tasks reported in the paper.
 Make sure to run pip install -r evaluation-requirements.txt beforehand

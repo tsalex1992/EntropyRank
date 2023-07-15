@@ -2,3 +2,6 @@ rake-nltk==1.0.6
 yake==0.4.8
 keybert==0.7.0
 pytextrank==3.2.4
+datasets==2.13.1
+evaluate==0.4.0
+tqdm==4.65.0

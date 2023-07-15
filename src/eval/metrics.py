@@ -1,8 +1,6 @@
 from tqdm import tqdm
 import evaluate
 
-import evaluate
-
 
 def evaluate_metrics(
     eval_set: list[str],
