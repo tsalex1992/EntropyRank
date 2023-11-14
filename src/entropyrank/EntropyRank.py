@@ -23,16 +23,24 @@ class RankingMethod(str, Enum):
 
 
 class EntropyRank:
-    def __init__(self, model=None, tokenizer=None, stop_words=None, corpus=None, device=None):
+    def __init__(
+        self, model=None, tokenizer=None, stop_words=None, corpus=None, device=None
+    ):
         self.device = (
-            device if device else torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            device
+            if device
+            else torch.device("cuda" if torch.cuda.is_available() else "cpu")
         )
         self.WORD_STATISTIC_PATH = "word_statistics.json"
         self.tokenizer = (
-            AutoTokenizer.from_pretrained("EleutherAI/gpt-neo-1.3B") if not tokenizer else tokenizer
+            AutoTokenizer.from_pretrained("EleutherAI/gpt-neo-1.3B")
+            if not tokenizer
+            else tokenizer
         )
         self.model = (
-            GPTNeoForCausalLM.from_pretrained("EleutherAI/gpt-neo-1.3B") if not model else model
+            GPTNeoForCausalLM.from_pretrained("EleutherAI/gpt-neo-1.3B")
+            if not model
+            else model
         )
         self.model.to(self.device)
         self.stop_words_files = [
@@ -76,7 +84,9 @@ class EntropyRank:
         words_to_tokens_indices = self._map_words_to_token_indices(tokenized_text)
         entropy, relevant_tokens, _ = self._get_tokens_entropy(tokenized_text)
         decoded = self.tokenizer.batch_decode(relevant_tokens)
-        original_words = EntropyRank._get_original_words(decoded, words_to_tokens_indices)
+        original_words = EntropyRank._get_original_words(
+            decoded, words_to_tokens_indices
+        )
 
         return self._get_highest_entropy_candidates(
             normalized_text=normalized_text,
@@ -147,7 +157,8 @@ class EntropyRank:
         decoded: list[str], words_to_tokens_indices: list[tuple[int, int]]
     ) -> list[str]:
         original_words = [
-            "".join(decoded[start:end]).strip() for start, end in words_to_tokens_indices
+            "".join(decoded[start:end]).strip()
+            for start, end in words_to_tokens_indices
         ]
         return original_words
 
@@ -161,7 +172,9 @@ class EntropyRank:
         if method == PartitionMethod.STOP_WORDS:
             return self._partition_by_stop_words(original_words, entropy)
         else:
-            return self._partition_by_noun_phrases(original_words, entropy, normalized_text)
+            return self._partition_by_noun_phrases(
+                original_words, entropy, normalized_text
+            )
 
     def _get_top_k_by_partition(
         self,
@@ -204,7 +217,9 @@ class EntropyRank:
         return list(zip(phrases, deduped_partitions_entropy))
 
     @staticmethod
-    def _dedup_partitions(top_k_partitions_words, top_k_partitions_entropy, number_of_results: int):
+    def _dedup_partitions(
+        top_k_partitions_words, top_k_partitions_entropy, number_of_results: int
+    ):
         deduped_partitions_words = []
         lower_case_partitions_words = [
             [word.lower() for word in partition] for partition in top_k_partitions_words
@@ -212,10 +227,15 @@ class EntropyRank:
         lower_case_deduped_partitions_words = []
         deduped_partitions_entropy = []
         for i in range(len(top_k_partitions_words)):
-            if lower_case_partitions_words[i] not in lower_case_deduped_partitions_words:
+            if (
+                lower_case_partitions_words[i]
+                not in lower_case_deduped_partitions_words
+            ):
                 deduped_partitions_words.append(top_k_partitions_words[i])
                 deduped_partitions_entropy.append(top_k_partitions_entropy[i])
-                lower_case_deduped_partitions_words.append(lower_case_partitions_words[i])
+                lower_case_deduped_partitions_words.append(
+                    lower_case_partitions_words[i]
+                )
 
         # take only the top k partitions
         top_k_partitions_words = deduped_partitions_words[:number_of_results]
@@ -249,7 +269,10 @@ class EntropyRank:
 
         for token in doc:
             # if token.text exists in default dict and is False don't change it
-            if token.text in person_tokens_indicators and not person_tokens_indicators[token.text]:
+            if (
+                token.text in person_tokens_indicators
+                and not person_tokens_indicators[token.text]
+            ):
                 continue
             person_tokens_indicators[token.text] = token.ent_type_ == "PERSON"
 
@@ -284,7 +307,9 @@ class EntropyRank:
     def _generate_stop_words_from_files(self) -> set[str]:
         stop_words_from_files = set()
         for file_path in self.stop_words_files:
-            stop_words_from_files.update(EntropyRank._load_stop_words_from_file(file_path))
+            stop_words_from_files.update(
+                EntropyRank._load_stop_words_from_file(file_path)
+            )
 
         return stop_words_from_files
 
@@ -358,7 +383,9 @@ class EntropyRank:
     def _partition_by_noun_phrases(
         self, original_words: list[str], entropy: list[float], normalized_text: str
     ) -> tuple[list[list[str]], list[list[float]]]:
-        noun_phrases_indices = self._get_noun_phrases_indices(normalized_text, original_words)
+        noun_phrases_indices = self._get_noun_phrases_indices(
+            normalized_text, original_words
+        )
         partitioned_tokens_strings = []
         partitioned_entropies = []
         for start_index, end_index in noun_phrases_indices:
@@ -369,7 +396,9 @@ class EntropyRank:
         partitioned_tokens_strings = [
             partition for partition in partitioned_tokens_strings if partition
         ]
-        partitioned_entropies = [partition for partition in partitioned_entropies if partition]
+        partitioned_entropies = [
+            partition for partition in partitioned_entropies if partition
+        ]
 
         return partitioned_tokens_strings, partitioned_entropies
 
@@ -388,7 +417,9 @@ class EntropyRank:
         current_partition_index = 0
         for i in range(len(original_words)):
             if self._is_stop_word(original_words[i]):
-                partitioned_tokens_strings.append(original_words[current_partition_index:i])
+                partitioned_tokens_strings.append(
+                    original_words[current_partition_index:i]
+                )
                 partitioned_entropies.append(entropy[current_partition_index:i])
                 current_partition_index = i + 1
         # add the last partition
@@ -399,7 +430,9 @@ class EntropyRank:
         partitioned_tokens_strings = [
             partition for partition in partitioned_tokens_strings if partition
         ]
-        partitioned_entropies = [partition for partition in partitioned_entropies if partition]
+        partitioned_entropies = [
+            partition for partition in partitioned_entropies if partition
+        ]
 
         return partitioned_tokens_strings, partitioned_entropies
 
@@ -524,7 +557,9 @@ class EntropyRank:
             (
                 original_words,
                 entropy,
-            ) = EntropyRank._concat_apostrophes_to_previous_word(original_words, entropy)
+            ) = EntropyRank._concat_apostrophes_to_previous_word(
+                original_words, entropy
+            )
             for index, value in enumerate(entropy):
                 statistics[index] = statistics.get(index, 0) + value
                 histogram[index] = histogram.get(index, 0) + 1
