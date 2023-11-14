@@ -69,6 +69,46 @@ class EntropyRank:
             ]
         )
 
+    def extract_key_phrases_with_prefix(
+        self,
+        prefix: str,
+        text: str,
+        number_of_key_phrases=3,
+        exclude_start_words_count=0,
+        partition_method: PartitionMethod = PartitionMethod.NOUN_PHRASES,
+        ranking_method: RankingMethod = RankingMethod.SUM_ENTROPY,
+        normalize_by_word_statistics=False,
+        remove_personal_names=False,
+    ):
+        concatenated_text = prefix + "\n" + text
+        normalized_text = EntropyRank._normalize_text(concatenated_text)
+        normalized_prefix = EntropyRank._normalize_text(prefix)
+        tokenized_text = self._tokenize_text(normalized_text)
+        tokenized_prefix = self._tokenize_text(normalized_prefix)
+        words_to_token_indices_prefix = self._map_words_to_token_indices(
+            tokenized_prefix
+        )
+        words_to_tokens_indices = self._map_words_to_token_indices(tokenized_text)
+        entropy, relevant_tokens, _ = self._get_tokens_entropy(tokenized_text)
+
+        decoded = self.tokenizer.batch_decode(relevant_tokens)
+        original_words = EntropyRank._get_original_words(
+            decoded, words_to_tokens_indices
+        )
+
+        return self._get_highest_entropy_candidates(
+            normalized_text=normalized_text,
+            original_words=original_words,
+            entropy=entropy,
+            number_of_results=number_of_key_phrases,
+            remove_personal_names=remove_personal_names,
+            words_to_tokens_indices=words_to_tokens_indices,
+            exclude_start_words_count=len(words_to_token_indices_prefix),
+            normalize_by_word_statistics=normalize_by_word_statistics,
+            ranking_method=ranking_method,
+            partition_method=partition_method,
+        )
+
     def extract_key_phrases(
         self,
         text: str,
@@ -78,11 +118,16 @@ class EntropyRank:
         ranking_method: RankingMethod = RankingMethod.SUM_ENTROPY,
         normalize_by_word_statistics=False,
         remove_personal_names=False,
+        use_log_loss=False,
     ):
         normalized_text = EntropyRank._normalize_text(text)
         tokenized_text = self._tokenize_text(normalized_text)
         words_to_tokens_indices = self._map_words_to_token_indices(tokenized_text)
-        entropy, relevant_tokens, _ = self._get_tokens_entropy(tokenized_text)
+        entropy, relevant_tokens, _ = (
+            self._get_tokens_entropy(tokenized_text)
+            if not use_log_loss
+            else self._get_tokens_log_loss(tokenized_text)
+        )
         decoded = self.tokenizer.batch_decode(relevant_tokens)
         original_words = EntropyRank._get_original_words(
             decoded, words_to_tokens_indices
@@ -294,6 +339,22 @@ class EntropyRank:
 
         return entropy, relevant_tokens, logits
 
+    @torch.no_grad()
+    def _get_tokens_log_loss(
+        self, tokenized_text: str
+    ) -> tuple[torch.Tensor, list[int], torch.Tensor]:
+        # convert tokenized text to gpu tensors
+        tokenized_text = {k: v.to(self.device) for k, v in tokenized_text.items()}
+        # Get probabilities from logits
+        logits = self.model(**tokenized_text).logits
+
+        # Remove bos token from tokenized email
+        relevant_tokens = tokenized_text["input_ids"][0][1:]
+
+        log_loss = EntropyRank._calculate_log_loss_from_logits(logits, relevant_tokens)
+
+        return log_loss, relevant_tokens, logits
+
     @staticmethod
     def _load_stop_words_from_file(path: str) -> set[str]:
         stop_words = set()
@@ -483,6 +544,17 @@ class EntropyRank:
     def _normalize_text(text: str) -> str:
         text = text.replace("\t", " ")
         return text
+
+    @staticmethod
+    def _calculate_log_loss_from_logits(logits, relevant_tokens):
+        probs = logits[0].softmax(dim=-1)
+
+        # Get the actual probs of each token
+        actual_probs = probs[range(len(probs) - 1), relevant_tokens]
+
+        # Get cross entropy of each token
+        log_loss = -actual_probs.log2()
+        return log_loss
 
     @staticmethod
     def _calculate_entropy_from_logits(logits: torch.Tensor) -> torch.Tensor:
