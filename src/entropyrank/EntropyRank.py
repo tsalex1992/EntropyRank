@@ -46,7 +46,7 @@ class EntropyRank:
         self.stop_words_files = [
             # "stopwords/FoxStoplist.txt",
             "stopwords/TerrierStopList.txt",
-            "stopwords/SmartStoplist.txt",
+            "stopwords/SmartStopList.txt",
         ]
         self.stop_words = stop_words if stop_words else self._generate_stop_words()
         self.nlp = spacy.load("en_core_web_sm")
